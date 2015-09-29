@@ -51,7 +51,12 @@ protected:
 	}
 	static const char *skipWhiteSpace(const char *p);
 
+	/** Read a html name into the string provided. Return a pointer
+	    pointer just past the last character fo the name.
+	    return NULL if has error.
+	*/
 	static const char *readName(const char *p, std::string *name);
+	/// 读取element中的text，直到遇到endTag为止
 	static const char *readText(const char *p, std::string *text, bool trimWhiteSpace, const char *endTag, bool ignoreCase);
 	/// 把转义字符转化为原来的字符，比如"&lt;"转化为 '<'
 	static const char *getEntity(const char *p, char *value);
@@ -105,6 +110,89 @@ public:
 private:
 	// This should not in here, it will in TiHtmNode
 	std::string value;
+};
+
+class TiHtmNode : public TiHtmBase
+{
+public:
+
+	/// the type of html nodes
+	enum NodeType
+	{
+		TINYHTM_DOCUMENT,
+		TINYHTM_ELEMENT,
+		TINYHTM_COMMENT,
+		TINYHTM_UNKNOWN,
+		TINYHTM_TEXT,
+		TINYHTM_DECLARATION,
+		TINYHTM_TYPTCOUNT
+	};
+	
+	virtual ~TiHtmNode();
+	
+	/**
+		the different meaning of value
+		
+		Document:	filename of the xml file
+		Element:	name of the element
+		Comment:	the comment text
+		Unknown:	the tag contents
+		Text:		the text string
+	*/
+	const std::string getValue() const { return value; }
+	const char  *getValueStr() const { return value.c_str(); }
+	void setValue(const char *_value) { value = _value; }
+	void setValue(const std::string &_value) { value = _value; }
+	
+	/// delete alll the child nodes
+	void clear();
+	
+	TiHtmNode *getParent() 					{ return parent; }
+	const TiHtmNode *getParent() const 	{ return parent; }
+	TiHtmNode *getFirstChild()				{ return firstChild; }
+	const TiHtmNode *getFirstChild() const { return firstChild; }
+	TiHtmNode *getLastChild() 				{ return lastChild; }
+	const TiHtmNode *getLastChild() const  { return lastChild; }
+	
+	const TiHtmNode *getFirstChild(const char *_value) const;
+	TiHtmNode *getFirstChild(const char *_value)
+	{
+		return const_cast<TiHtmNode *>((const_cast<const TiHtmNode*>(this))->getFirstChild(_value));
+	}
+	const TiHtmNode *getFirstChild(const std::string &_value) const { return getFirstChild(_value.c_str()); }
+	TiHtmNode *getFirstChild(const std::string &_value) { return getFirstChild(_value.c_str()); }
+	
+	const TiHtmNode *getLastChild(const char *_value) const;
+	TiHtmNode *getLastChild(const char *_value)
+	{
+		return const_cast<TiHtmNode *>((const_cast<const TiHtmNode*>(this))->getLastChild(_value));
+	}
+	const TiHtmNode *getLastChild(const std::string &_value) const { return getLastChild(_value.c_str()); }
+	TiHtmNode *geLastChild(const std::string &_value) { return getLastChild(_value.c_str()); }
+	
+	TiHtmNode *insertEndChild(const TiHtmNode &addNode);
+	TiHtmNode *linkEndChild(TiHtmNode *pnode);
+	
+	/** the type of this node
+	    they are TINYHTM_DOCUMENT,TINYHTM_ELEMENT,TINYHTM_COMMENT,
+		TINYHTM_UNKNOWN,TINYHTM_TEXT,TINYHTM_DECLARATION
+	*/
+	int getType() const { return type; }
+	
+	virtual TiHtmNode *clone() const = 0;
+	
+protected:
+	TiHtmNode(NodeType _type);
+	
+	TiHtmNode *parent;
+	NodeType type;
+	TiHtmNode *firstChild;
+	TiHtmNode *lastChild;
+	
+	std::string value;
+	
+	TiHtmNode *prev;
+	TiHtmNode *next;
 };
 
 #endif
