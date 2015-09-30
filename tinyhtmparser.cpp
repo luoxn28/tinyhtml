@@ -11,6 +11,101 @@ TiHtmBase::Entity TiHtmBase::entity[TiHtmBase::NUM_ENTITY] =
 	};
 
 
+// the scope of class TiHtmParsingData
+
+class TiHtmParsingData
+{
+	friend class TiHtmDocument;
+public:
+	void setStamp(const char *p);
+	
+	const TiHtmCursor &getCursor() const { return cursor; }
+
+private:
+	TiHtmParsingData(const char *pstart, int _tabsize, int row, int column)
+	{
+		assert(pstart);
+		stamp = pstart;
+		tabsize = _tabsize;
+		cursor.row = row;
+		cursor.column = column;
+	}
+	
+	TiHtmCursor cursor;
+	const char *stamp;
+	int 		 tabsize; 
+};
+
+/// 在parse时更新cursor值，比如换行时row++，col=0否则row++,col++,最后会把stamp复制为now
+void TiHtmParsingData::setStamp(const char *now)
+{
+	assert(now);
+	if (tabsize < 1)
+		return;
+	
+	// Get the current now, column
+	int row = cursor.row;
+	int col = cursor.column;
+	const char *p = stamp;
+	assert(p);
+	
+	while (p < now)
+	{
+		const unsigned char *pU = (const unsigned char *)p;
+		
+		switch (*pU)
+		{
+			case 0:
+				return;
+			
+			case '\r':
+				row++;
+				col = 0;
+				// Eat the character
+				p++;
+				
+				// Check for \r\n
+				if (*p == '\n')
+				{
+					p++;
+				}
+				break;
+			
+			case '\n':
+				row++;
+				col = 0;
+				// Eat the character
+				p++;
+				
+				// Check for \r\n
+				if (*p == '\r')
+				{
+					p++;
+				}
+				break;
+			
+			case '\t':
+				// Eat the character
+				p++;
+				// Skip to next tab stop
+				col = (col / tabsize + 1) * tabsize;
+				break;
+			
+			default:
+				p++;
+				col++;
+				break;
+		}
+	}
+	
+	cursor.row = row;
+	cursor.column = col;
+	assert(cursor.row >= -1);
+	assert(cursor.column >= -1);
+	stamp = p;
+	assert(stamp);
+}
+
 // the scope of class TiHtmBase
 
 bool TiHtmBase::isWhiteSpace(char c)

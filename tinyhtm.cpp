@@ -116,6 +116,267 @@ TiHtmNode *TiHtmNode::linkEndChild(TiHtmNode *pnode)
 	return pnode;
 }
 
+TiHtmNode *TiHtmNode::insertBeforeChild(TiHtmNode *beforeNode, const TiHtmNode &addNode)
+{
+	if (!beforeNode || beforeNode->parent != this)
+	{
+		return NULL;
+	}
+	if (addNode.getType() == TiHtmNode::TINYHTM_DOCUMENT)
+	{
+		std::cout << "TiHtmNode::insertBeforeChild() error" << std::endl;
+		return NULL;
+	}
+	
+	TiHtmNode *pnode = addNode.clone();
+	if (!pnode)
+		return NULL;
+	pnode->parent = this;
+	
+	pnode->next = beforeNode;
+	pnode->prev = beforeNode->prev;
+	if (beforeNode->prev)
+	{
+		beforeNode->prev->next = pnode;
+	}
+	else
+	{
+		assert(firstChild == beforeNode);
+		firstChild = pnode;
+	}
+	
+	beforeNode->prev = pnode;
+	return pnode;
+}
+
+TiHtmNode *TiHtmNode::insertAfterChild(TiHtmNode *afterNode, const TiHtmNode &addNode)
+{
+	if (!afterNode || afterNode->parent != this)
+	{
+		return NULL;
+	}
+	if (addNode.getType() == TiHtmNode::TINYHTM_DOCUMENT)
+	{
+		std::cout << "TiHtmNode::insertAfterChild() error" << std::endl;
+		return NULL;
+	}
+	
+	TiHtmNode *pnode = addNode.clone();
+	if (!pnode)
+		return NULL;
+	pnode->parent = this;
+	
+	pnode->prev = afterNode;
+	pnode->next = afterNode->next;
+	if (afterNode->next)
+	{
+		afterNode->next->prev = pnode;
+	}
+	else
+	{
+		assert(lastChild == afterNode);
+		lastChild = pnode;
+	}
+	
+	afterNode->next = pnode;
+	return pnode;
+}
+
+TiHtmNode *TiHtmNode::replaceChild(TiHtmNode *replaceNode, const TiHtmNode &withNode)
+{
+	if (!replaceNode || replaceNode->parent != this)
+	{
+		return NULL;
+	}
+	if (withNode.getType() == TiHtmNode::TINYHTM_DOCUMENT)
+	{
+		std::cout << "TiHtmNode::replaceChild() error" << std::endl;
+		return NULL;
+	}
+	
+	TiHtmNode *pnode = withNode.clone();
+	if (!pnode)
+		return NULL;
+	
+	pnode->prev = replaceNode->prev;
+	pnode->next = replaceNode->next;
+	
+	if (replaceNode->prev)
+	{
+		replaceNode->prev->next = pnode;
+	}
+	else
+	{
+		assert(replaceNode == firstChild);
+		firstChild = pnode;
+	}
+	
+	if (replaceNode->next)
+	{
+		replaceNode->next->prev = pnode;
+	}
+	else
+	{
+		assert(replaceNode == lastChild);
+		lastChild = pnode;
+	}
+	
+	delete replaceNode;
+	pnode->parent = this;
+	return pnode;
+}
+
+bool TiHtmNode::removeChild(TiHtmNode *removeNode)
+{
+	if (!removeNode || removeNode->parent != this)
+	{
+		return false;
+	}
+	
+	if (removeNode->prev)
+	{
+		removeNode->prev->next = removeNode->next;
+	}
+	else
+	{
+		assert(firstChild == removeNode);
+		firstChild = removeNode->next;
+	}
+	
+	if (removeNode->next)
+	{
+		removeNode->next->prev = removeNode->prev;
+	}
+	else
+	{
+		assert(lastChild == removeNode);
+		lastChild = removeNode->prev;
+	}
+	
+	delete removeNode;
+	return true;
+}
+
+const TiHtmNode *TiHtmNode::previousSibling(const char *_value) const
+{
+	const TiHtmNode *pnode = NULL;
+	for (pnode = prev; pnode; pnode = pnode->prev)
+	{
+		if (strcmp(pnode->getValueStr(), _value) == 0)
+			return pnode;
+	}
+	return NULL;
+}
+
+const TiHtmNode *TiHtmNode::nextSibling(const char *_value) const
+{
+	const TiHtmNode *pnode = NULL;
+	for (pnode = next; pnode; pnode = pnode->next)
+	{
+		if (strcmp(pnode->getValueStr(), _value) == 0)
+			return pnode;
+	}
+	return NULL;
+}
+
+const TiHtmElement *TiHtmNode::nextSiblingElement() const
+{
+	const TiHtmNode *pnode = NULL;
+	for (pnode = next; pnode; pnode = pnode->next)
+	{
+		if (pnode->toElement())
+			return pnode->toElement();
+	}
+	return NULL;
+}
+
+const TiHtmElement *TiHtmNode::nextSiblingElement(const char *_value) const
+{
+	const TiHtmNode *pnode = NULL;
+	for (pnode = nextSibling(_value); pnode; pnode = pnode->nextSibling(_value))
+	{
+		if (pnode->toElement())
+			return pnode->toElement();
+	}
+	return NULL;
+}
+
+const TiHtmElement *TiHtmNode::firstChildElement() const
+{
+	const TiHtmNode *pnode = NULL;
+	
+	for (pnode = getFirstChild(); pnode; pnode = pnode->nextSibling())
+	{
+		if (pnode->toElement())
+			return pnode->toElement();
+	}
+	return NULL;
+}
+
+const TiHtmElement *TiHtmNode::firstChildElement(const char *_value) const
+{
+	const TiHtmNode *pnode = NULL;
+	
+	for (pnode = getFirstChild(_value); pnode; pnode = pnode->nextSibling(_value))
+	{
+		if (pnode->toElement())
+			return pnode->toElement();
+	}
+	return NULL;
+}
+
+void TiHtmNode::copyTo(TiHtmNode *target) const
+{
+	target->setValue(value.c_str());
+	target->location = location;
+}
+
+/// 解析输入流中字符是什么，然后new相应的类型并返回
+TiHtmNode *TiHtmNode::identify(const char *p)
+{
+	TiHtmNode *returnNode = NULL;
+	
+	p = skipWhiteSpace(p);
+	if (!p || !*p || *p != '<')
+		return NULL;
+	
+	p = skipWhiteSpace(p);
+	if (!p || !*p)
+		return NULL;
+	
+	const char *htmlHeader = "<html";
+	const char *commentHeader = "<!--";
+	const char *dtdHeader = "<!";
+	
+	if (stringEqual(p, htmlHeader, true))
+	{
+		//returnNode = new TiXmlDeclaration();
+	}
+	else if (stringEqual(p, commentHeader, true))
+	{
+		//returnNode = new TiXmlComment();
+	}
+	else if (stringEqual(p, dtdHeader, true))
+	{
+		//returnNode = new TiXmlUnknown();
+	}
+	else if (isAlpha(*(p+1)) || *(p+1) == '_')
+	{
+		//returnNode = new TiXmlElement();
+	}
+	else
+	{
+		//returnNode = new TiXmlElement();
+	}
+	
+	if (returnNode)
+	{
+		returnNode->parent = this;
+	}
+	
+	return returnNode;
+}
+
 // the scope of class TiHtmDocument
 
 bool TiHtmDocument::loadFile()

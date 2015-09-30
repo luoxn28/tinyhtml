@@ -14,6 +14,14 @@
 #define TiHtmCin  std::cin
 #define TiHtmEndl std::endl
 
+class TiHtmDocument;
+class TiHtmElement;
+class TiHtmComment;
+class TiHtmUnknown;
+class TiHtmText;
+class TiHtmDeclaration;
+
+class TiHtmParsingData;
 
 /// record the location
 struct TiHtmCursor
@@ -33,8 +41,8 @@ public:
 	TiHtmBase() {}
 	virtual ~TiHtmBase() {}
 
-	virtual void print() const = 0;
-	virtual const char *parse(const char *p) = 0;
+	virtual void print(FILE *cfile, int depth) const = 0;
+	virtual const char *parse(const char *p, TiHtmParsingData *data) = 0;
 
 	int row() const { return location.row; }
 	int column() const { return location.row; }
@@ -172,6 +180,69 @@ public:
 	
 	TiHtmNode *insertEndChild(const TiHtmNode &addNode);
 	TiHtmNode *linkEndChild(TiHtmNode *pnode);
+
+	TiHtmNode *insertBeforeChild(TiHtmNode *beforeNode, const TiHtmNode &addNode);
+	TiHtmNode *insertAfterChild(TiHtmNode *afterNode, const TiHtmNode &addNode);
+	TiHtmNode *replaceChild(TiHtmNode *replaceNode, const TiHtmNode &withNode);
+	
+	/// Delete a child of this node
+	bool removeChild(TiHtmNode *removeNode);
+	
+	const TiHtmNode *previousSibling() const { return prev; }
+	TiHtmNode *previousSibling()				  { return prev; }
+	const TiHtmNode *previousSibling(const char *_value) const;
+	TiHtmNode *previousSibling(const char *_value)
+	{
+		return const_cast<TiHtmNode *>((const_cast<const TiHtmNode *>(this))->previousSibling(_value));
+	}
+	
+	/// Using std::string
+	const TiHtmNode *previousSibling(const std::string &_value) const { return previousSibling(_value.c_str()); }
+	TiHtmNode *previousSibling(const std::string &_value) 			  { return previousSibling(_value.c_str()); }
+	const TiHtmNode *nextSibling(const std::string &_value) const	  { return nextSibling(_value.c_str()); }
+	TiHtmNode *nextSibling(const std::string &_value)					  { return nextSibling(_value.c_str()); }
+	
+	const TiHtmNode *nextSibling() const { return next; }
+	TiHtmNode *nextSibling()				  { return next; }
+	const TiHtmNode *nextSibling(const char *_value) const;
+	TiHtmNode *nextSibling(const char *_value)
+	{
+		return const_cast<TiHtmNode *>((const_cast<const TiHtmNode *>(this))->nextSibling(_value));
+	}
+	
+	/// Some convenience function
+	const TiHtmElement *nextSiblingElement() const;
+	TiHtmElement *nextSiblingElement()
+	{
+		return const_cast<TiHtmElement *>((const_cast<const TiHtmNode *>(this))->nextSiblingElement());
+	}
+	
+	const TiHtmElement *nextSiblingElement(const char *_value) const;
+	TiHtmElement *nextSiblingElement(const char *_value)
+	{
+		return const_cast<TiHtmElement *>((const_cast<const TiHtmNode *>(this))->nextSiblingElement(_value));
+	}
+	
+	/// Some convenience function using std::string
+	const TiHtmElement *nextSiblingElement(const std::string &_value) const { return nextSiblingElement(_value.c_str()); }
+	TiHtmElement *nextSiblingElement(const std::string &_value) 				 { return nextSiblingElement(_value.c_str()); }
+	
+	/// Convenience function to get through elements.
+	const TiHtmElement *firstChildElement() const;
+	TiHtmElement *firstChildElement()
+	{
+		return const_cast<TiHtmElement *>((const_cast<const TiHtmNode *>(this))->firstChildElement());
+	}
+	
+	const TiHtmElement *firstChildElement(const char *_value) const;
+	TiHtmElement *firstChildElement(const char *_value)
+	{
+		return const_cast<TiHtmElement *>((const_cast<const TiHtmNode *>(this))->firstChildElement(_value));
+	}
+	
+	/// Some convenience function using std::string
+	const TiHtmElement *firstChildElement(const std::string &_value) const { return firstChildElement(_value.c_str()); }
+	TiHtmElement *firstChildElement(const std::string &_value)			   { return firstChildElement(_value.c_str()); }
 	
 	/** the type of this node
 	    they are TINYHTM_DOCUMENT,TINYHTM_ELEMENT,TINYHTM_COMMENT,
@@ -179,7 +250,32 @@ public:
 	*/
 	int getType() const { return type; }
 	
+	/// return true if this node has no children
+	bool noChildren() const { return !firstChild; }
+	
+	virtual const TiHtmDocument 		*toDocument() const { return NULL; }
+	virtual const TiHtmElement  		*toElement()  const { return NULL; }
+	virtual const TiHtmComment  		*toComment()  const { return NULL; }
+	virtual const TiHtmUnknown  		*toUnknown()  const { return NULL; }
+	virtual const TiHtmText	   		*toText()	   const { return NULL; }
+	virtual const TiHtmDeclaration  *toDeclaration() const { return NULL; }
+	
+	virtual TiHtmDocument 		*toDocument() { return NULL; }
+	virtual TiHtmElement  		*toElement()  { return NULL; }
+	virtual TiHtmComment  		*toComment()  { return NULL; }
+	virtual TiHtmUnknown  		*toUnknown()  { return NULL; }
+	virtual TiHtmText	   			*toText()	   { return NULL; }
+	virtual TiHtmDeclaration    *toDeclaration() { return NULL; }
+	
+	/// Create an exact duplicate of this node and return it. The memory must be deleted by the caller
 	virtual TiHtmNode *clone() const = 0;
+	
+	/// Copy to allocated object
+	void copyTo(TiHtmNode *target) const;
+	
+	/// Figure out what is at *p, and parse it. Returns null if it is not an html node.
+	/// 解析输入流中字符是什么，然后new相应的类型并返回
+	TiHtmNode *identify(const char *p);
 	
 protected:
 	TiHtmNode(NodeType _type);
@@ -193,6 +289,10 @@ protected:
 	
 	TiHtmNode *prev;
 	TiHtmNode *next;
+
+private:
+	TiHtmNode(const TiHtmNode &);			// not implemented
+	void operator=(const TiHtmNode &base); // not implemented
 };
 
 #endif
