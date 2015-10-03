@@ -295,5 +295,33 @@ private:
 	void operator=(const TiHtmNode &base); // not implemented
 };
 
+class TiHtmElement : public TiHtmNode
+{
+public:
+	TiHtmElement(const char *_value);
+	
+	// Using std::string
+	TiHtmElement(const std::string &_value);
+	
+	TiHtmElement(const TiHtmElement &);
+	//TiHtmElement &operator=(const TiHtmElement &base);
+
+	virtual ~TiHtmElement();
+	
+	/// 如果element的第一个child不是text，则返回null，否则返回text的字符串
+	//const char *getText() const;
+	
+	/// Creates a new Element and returns it - the returned element is a copy.
+	virtual TiHtmNode *clone() const;
+
+protected:
+	void copyTo(TiHtmElement *target) const;
+	void clearThis();
+	
+	virtual void print(FILE *cfile, int depth) const {}
+	virtual const char *parse(const char *p, TiHtmParsingData *data) {}
+	
+};
+
 #endif
 

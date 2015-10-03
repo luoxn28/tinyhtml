@@ -350,23 +350,23 @@ TiHtmNode *TiHtmNode::identify(const char *p)
 	
 	if (stringEqual(p, htmlHeader, true))
 	{
-		//returnNode = new TiXmlDeclaration();
+		//returnNode = new TiHtmDeclaration();
 	}
 	else if (stringEqual(p, commentHeader, true))
 	{
-		//returnNode = new TiXmlComment();
+		//returnNode = new TiHtmComment();
 	}
 	else if (stringEqual(p, dtdHeader, true))
 	{
-		//returnNode = new TiXmlUnknown();
+		//returnNode = new TiHtmUnknown();
 	}
 	else if (isAlpha(*(p+1)) || *(p+1) == '_')
 	{
-		//returnNode = new TiXmlElement();
+		returnNode = new TiHtmElement("");
 	}
 	else
 	{
-		//returnNode = new TiXmlElement();
+		//returnNode = new TiHtmElement();
 	}
 	
 	if (returnNode)
@@ -375,6 +375,64 @@ TiHtmNode *TiHtmNode::identify(const char *p)
 	}
 	
 	return returnNode;
+}
+
+// the scope of class TiHtmElement
+
+TiHtmElement::TiHtmElement(const char *_value) : TiHtmNode(TiHtmNode::TINYHTM_ELEMENT)
+{
+	firstChild = lastChild = NULL;
+	value = _value;
+}
+
+TiHtmElement::TiHtmElement(const std::string &_value) : TiHtmNode(TiHtmNode::TINYHTM_ELEMENT)
+{
+	firstChild = lastChild = NULL;
+	value = _value;
+}
+
+TiHtmElement::TiHtmElement(const TiHtmElement &copyElem) : TiHtmNode(TiHtmNode::TINYHTM_ELEMENT)
+{
+	firstChild = lastChild = NULL;
+	copyElem.copyTo(this);
+}
+
+TiHtmElement::~TiHtmElement()
+{
+	clearThis();
+}
+
+/// 如果element的第一个child不是text，则返回null，否则返回text的字符串
+/*
+const char *TiHtmElement::getText() const
+{
+	const TiHtmNode *child = this->getFirstChild();
+	if (child)
+	{
+		const TiHtmText *childText = child->toText();
+		if (childText)
+		{
+			//return childText->getValue();
+		}
+	}
+	return NULL;
+}
+*/
+
+TiHtmNode *TiHtmElement::clone() const
+{
+	
+}
+
+void TiHtmElement::copyTo(TiHtmElement *target) const
+{
+	TiHtmNode::copyTo(target);
+	
+}
+
+void TiHtmElement::clearThis()
+{
+	clear();
 }
 
 // the scope of class TiHtmDocument
