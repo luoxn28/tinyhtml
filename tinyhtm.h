@@ -37,6 +37,9 @@ struct TiHtmCursor
 /// the base class of whole tinyhtml
 class TiHtmBase
 {
+	friend class TiHtmNode;
+	friend class TiHtmElement;
+	//friend class TiHtmDocumnet;
 public:
 	TiHtmBase() {}
 	virtual ~TiHtmBase() {}
@@ -122,6 +125,8 @@ private:
 
 class TiHtmNode : public TiHtmBase
 {
+	friend class TiHtmElement;
+	//friend class TiHtmDocument;
 public:
 
 	/// the type of html nodes
@@ -313,14 +318,25 @@ public:
 	
 	/// Creates a new Element and returns it - the returned element is a copy.
 	virtual TiHtmNode *clone() const;
+	
+	/// Print the Element to a FILE stream
+	virtual void print(FILE *cfile, int depth) const;
+	
+	/// Parse() declared in class TiHTmBase
+	virtual const char *parse(const char *p, TiHtmParsingData *data);
+	
+	virtual const TiHtmElement *toElement() const { return this; }
+	virtual TiHtmElement *toElement()				{ return this; }
 
 protected:
 	void copyTo(TiHtmElement *target) const;
-	void clearThis();
+	void clearThis(); // like clear, bur initializes 'this' object as well
 	
-	virtual void print(FILE *cfile, int depth) const {}
-	virtual const char *parse(const char *p, TiHtmParsingData *data) {}
-	
+	/*	[internal use]
+		Reads the "value" of the element -- another element, or text.
+		This should terminate with the current end tag.
+	*/
+	const char *readValue(const char *in, TiHtmParsingData *prevData);
 };
 
 #endif

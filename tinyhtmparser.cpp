@@ -270,3 +270,225 @@ int TiHtmBase::isAlnum(unsigned char c)
 	else
 		return false;
 }
+
+// the scope of class TiHtmNode
+
+/// 解析输入流中字符是什么，然后new相应的类型并返回
+TiHtmNode *TiHtmNode::identify(const char *p)
+{
+	TiHtmNode *returnNode = NULL;
+	
+	p = skipWhiteSpace(p);
+	if (!p || !*p || *p != '<')
+		return NULL;
+	
+	p = skipWhiteSpace(p);
+	if (!p || !*p)
+		return NULL;
+	
+	const char *htmlHeader = "<html";
+	const char *commentHeader = "<!--";
+	const char *dtdHeader = "<!";
+	
+	if (stringEqual(p, htmlHeader, true))
+	{
+		//returnNode = new TiHtmDeclaration();
+	}
+	else if (stringEqual(p, commentHeader, true))
+	{
+		//returnNode = new TiHtmComment();
+	}
+	else if (stringEqual(p, dtdHeader, true))
+	{
+		//returnNode = new TiHtmUnknown();
+	}
+	else if (isAlpha(*(p+1)) || *(p+1) == '_')
+	{
+		returnNode = new TiHtmElement("");
+	}
+	else
+	{
+		//returnNode = new TiHtmElement();
+	}
+	
+	if (returnNode)
+	{
+		returnNode->parent = this;
+	}
+	
+	return returnNode;
+}
+
+// the scope of class TiHtmElement
+
+/// 真正开始parse的第一个字符必须是'<'
+const char *TiHtmElement::parse(const char *p, TiHtmParsingData *data)
+{	
+	if (!p || !*p)
+	{ 
+		std::cout << "TiHtmNode::parse()(1) error" << std::endl;
+		return NULL;
+	}
+	
+	p = skipWhiteSpace(p);
+	
+	if (data)
+	{
+		data->setStamp(p);
+		location = data->getCursor();
+	}
+	
+	if (*p != '<')
+	{
+		std::cout << "TiHtmNode::parse()(2) error" << std::endl;
+		return NULL;
+	}
+	
+	p = skipWhiteSpace(p + 1);
+	
+	p = readName(p, &value);
+	if (!p || !*p)
+	{
+		std::cout << "TiHtmNode::parse()(3) error" << std::endl;
+		return NULL;
+	}
+	
+	std::string endTag = "</";
+	endTag += value;
+	
+	while (p && *p)
+	{
+		p = skipWhiteSpace(p);
+		if (!p || !*p)
+		{
+			std::cout << "TiHtmNode::parse()(4) error" << std::endl;
+			return NULL;
+		}
+		
+		if (*p == '/')
+		{
+			p++;
+			if (*p != '>')
+			{
+				std::cout << "TiHtmNode::parse()(5) error" << std::endl;
+				return (p + 1);
+			}
+		}
+		else if (*p == '>')
+		{
+			// Done with attributes (if there were any.)
+			// Read the value -- which can include other
+			// elements -- read the end tag, and return.
+			p++;
+			p = readValue(p, data);
+			if (!p || !*p)
+			{
+				std::cout << "TiHtmNode::parse()(6) error" << std::endl;
+				return NULL;
+			}
+			
+			if (stringEqual(p, endTag.c_str(), false))
+			{
+				p += endTag.length();
+				p = skipWhiteSpace(p);
+				if (p && *p && *p == '>')
+				{
+					p++;
+					return p;
+				}
+				
+				std::cout << "TiHtmNode::parse()(7) error" << std::endl;
+				return NULL;
+			}
+			else
+			{
+				std::cout << "TiHtmNode::parse()(8) error" << std::endl;
+				return NULL;
+			}
+		}
+		else
+		{
+			p++;
+			if (!p || !*p)
+			{
+				std::cout << "TiHtmNode::parse()(9) error" << std::endl;
+				return NULL;
+			}
+		}
+	}
+	
+	return p;
+}
+
+const char *TiHtmElement::readValue(const char *p, TiHtmParsingData *data)
+{
+	const char *pWithWhiteSpace = p;
+	
+	p = skipWhiteSpace(p);
+	while (p && *p)
+	{
+		if (*p != '<')
+		{
+			// It is text element
+			/*
+			TiHtmText *textNode = new TiHtmText("");
+			if (!textNode)
+				return NULL;
+			
+			p = textNode->parse(p, data);
+		
+			if (!textNode->blank())
+				linkEndChild(textNode);
+			else
+				delete textNode;
+			*/
+		}
+		else
+		{
+			// We hit a '<'
+			// Have we hit a new element or an end tag?
+			if (stringEqual(p, "</", false))
+			{
+				return p;
+			}
+			else
+			{
+				// other element
+				TiHtmNode *node = identify(p);
+				if (node)
+				{
+					p = node->parse(p, data);
+					linkEndChild(node);
+				}
+				else
+				{
+					return NULL;
+				}
+			}
+		}
+		
+		pWithWhiteSpace = p;
+		p = skipWhiteSpace(p);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

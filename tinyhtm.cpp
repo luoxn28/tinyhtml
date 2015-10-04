@@ -331,52 +331,6 @@ void TiHtmNode::copyTo(TiHtmNode *target) const
 	target->location = location;
 }
 
-/// 解析输入流中字符是什么，然后new相应的类型并返回
-TiHtmNode *TiHtmNode::identify(const char *p)
-{
-	TiHtmNode *returnNode = NULL;
-	
-	p = skipWhiteSpace(p);
-	if (!p || !*p || *p != '<')
-		return NULL;
-	
-	p = skipWhiteSpace(p);
-	if (!p || !*p)
-		return NULL;
-	
-	const char *htmlHeader = "<html";
-	const char *commentHeader = "<!--";
-	const char *dtdHeader = "<!";
-	
-	if (stringEqual(p, htmlHeader, true))
-	{
-		//returnNode = new TiHtmDeclaration();
-	}
-	else if (stringEqual(p, commentHeader, true))
-	{
-		//returnNode = new TiHtmComment();
-	}
-	else if (stringEqual(p, dtdHeader, true))
-	{
-		//returnNode = new TiHtmUnknown();
-	}
-	else if (isAlpha(*(p+1)) || *(p+1) == '_')
-	{
-		returnNode = new TiHtmElement("");
-	}
-	else
-	{
-		//returnNode = new TiHtmElement();
-	}
-	
-	if (returnNode)
-	{
-		returnNode->parent = this;
-	}
-	
-	return returnNode;
-}
-
 // the scope of class TiHtmElement
 
 TiHtmElement::TiHtmElement(const char *_value) : TiHtmNode(TiHtmNode::TINYHTM_ELEMENT)
@@ -421,7 +375,61 @@ const char *TiHtmElement::getText() const
 
 TiHtmNode *TiHtmElement::clone() const
 {
+	TiHtmElement *clone = new TiHtmElement(getValue());
+	if (!clone)
+		return NULL;
 	
+	copyTo(clone);
+	return clone;
+}
+
+/// Print函数会递归调用，当element中包含element时，就会发生对自身的调用
+void TiHtmElement::print(FILE *cfile, int depth) const
+{
+	assert(cfile);
+	
+	for (int i = 0; i < depth; i++)
+	{
+		fprintf(cfile, "    ");
+	}
+	
+	fprintf(cfile, "<%s", value.c_str());
+	
+	// There are 3 different formatting approaches:
+	// 1) An element without children is printed as a <foo /> node
+	// 2) An element with only a text child is printed as <foo> text </foo>
+	// 3) An element with children is printed on multiple lines.
+	TiHtmNode *pnode = NULL;
+	if (!firstChild)
+	{
+		fprintf(cfile, " />");
+	}
+	else if (firstChild == lastChild && firstChild->toText())
+	{
+		fprintf(cfile, ">");
+		firstChild->print(cfile, depth + 1);
+		fprintf(cfile, "</%s>", value.c_str());
+	}
+	else
+	{
+		fprintf(cfile, ">");
+		
+		for (pnode = firstChild; pnode; pnode = pnode->nextSibling())
+		{
+			if (!pnode->toText())
+			{
+				fprintf(cfile, "\n");
+			}
+			pnode->print(cfile, depth + 1);
+		}
+		fprintf(cfile, "\n");
+		
+		for (int i = 0; i < depth; i++)
+		{
+			fprintf(cfile, "    ");
+		}
+		fprintf(cfile, "</%s>", value.c_str());
+	}
 }
 
 void TiHtmElement::copyTo(TiHtmElement *target) const
