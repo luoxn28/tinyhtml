@@ -10,10 +10,6 @@
 #include <ctype.h>
 #include <assert.h>
 
-#define TiHtmCout std::cout
-#define TiHtmCin  std::cin
-#define TiHtmEndl std::endl
-
 class TiHtmDocument;
 class TiHtmElement;
 class TiHtmComment;
@@ -101,26 +97,6 @@ private:
 	};
 
 	static Entity entity[NUM_ENTITY]; // defined in file tinyhtmparser.cpp
-};
-
-
-class TiHtmDocument
-{
-public:
-	TiHtmDocument() : value("") {}
-	TiHtmDocument(std::string filename) : value(filename) {}
-
-	bool loadFile();
-	bool loadFile(const char *filename);
-	bool loadFile(const std::string filename);
-	bool loadFile(FILE *file);
-
-	const std::string getValue() const { return value; } 
-	const char *getValueCstr()const  { return value.c_str(); }
-	
-private:
-	// This should not in here, it will in TiHtmNode
-	std::string value;
 };
 
 class TiHtmNode : public TiHtmBase
@@ -337,6 +313,86 @@ protected:
 		This should terminate with the current end tag.
 	*/
 	const char *readValue(const char *in, TiHtmParsingData *prevData);
+};
+
+class TiHtmText : public TiHtmNode
+{
+	friend class TiHtmElement;
+public:
+	TiHtmText(const char *_value) : TiHtmNode(TiHtmNode::TINYHTM_TEXT)
+	{
+		setValue(_value);
+	}
+	TiHtmText(const std::string &_value) : TiHtmNode(TiHtmNode::TINYHTM_TEXT)
+	{
+		setValue(_value);
+	}
+	virtual ~TiHtmText() {}
+	
+	TiHtmText(const TiHtmText &copy) : TiHtmNode(TiHtmNode::TINYHTM_TEXT) { copy.copyTo(this); }
+	TiHtmText &operator=(const TiHtmText &base) { base.copyTo(this); return *this; }
+	
+	/// Write this text to a FILE stream
+	virtual void print(FILE *cfile, int depth) const;
+	
+	/// Parse the text
+	virtual const char *parse(const char *p, TiHtmParsingData *data);
+	
+	virtual const TiHtmText *toText() const { return this; }
+	virtual TiHtmText *toText()		  		 { return this; }
+
+protected:
+	// internal use, create a new elemnet node and returns it
+	virtual TiHtmText *clone() const;
+	
+	void copyTo(TiHtmText *target) const { TiHtmNode::copyTo(target); }
+	
+	bool blank() const;
+};
+
+class TiHtmDocument : public TiHtmNode
+{
+public:
+
+	TiHtmDocument();
+	TiHtmDocument(const char *filename);
+	TiHtmDocument(std::string filename);
+
+	TiHtmDocument(const TiHtmDocument &copy);
+	TiHtmDocument &operator=(const TiHtmDocument &copy);
+	
+	virtual ~TiHtmDocument() {}
+
+	bool loadFile();
+	bool loadFile(const char *filename);
+	bool loadFile(const std::string &filename);
+	bool loadFile(FILE *file);
+	
+	bool saveFile() const;
+	bool saveFile(const char *filename) const;
+	bool saveFile(const std::string &filename) const;
+	bool saveFile(FILE *file) const;
+
+	/// Start parse the document file
+	virtual const char *parse(const char *p, TiHtmParsingData *data = NULL);
+	
+	/// Get the root element
+	const TiHtmElement *rootElement() const { return firstChildElement(); }
+	TiHtmElement *rootElement()				 { return firstChildElement(); }
+	
+	/// The tab size funciton
+	void setTabSize(int _tabsize) { tabsize = _tabsize; }
+	int tabSize() const 			 { return tabsize; }
+	
+	void print() const { print(stdout, 0); }
+	virtual void print(FILE *cfile, int depth = 0) const;
+	
+private:
+	/// Internal use
+	virtual TiHtmNode *clone() const;
+	void copyTo(TiHtmDocument *target) const;
+	
+	int tabsize;
 };
 
 #endif

@@ -286,15 +286,16 @@ TiHtmNode *TiHtmNode::identify(const char *p)
 	if (!p || !*p)
 		return NULL;
 	
-	const char *htmlHeader = "<html";
+	//const char *htmlHeader = "<html";
 	const char *commentHeader = "<!--";
 	const char *dtdHeader = "<!";
 	
-	if (stringEqual(p, htmlHeader, true))
+	/*if (stringEqual(p, htmlHeader, true))
 	{
 		//returnNode = new TiHtmDeclaration();
 	}
-	else if (stringEqual(p, commentHeader, true))
+	else */
+	if (stringEqual(p, commentHeader, true))
 	{
 		//returnNode = new TiHtmComment();
 	}
@@ -430,7 +431,6 @@ const char *TiHtmElement::readValue(const char *p, TiHtmParsingData *data)
 		if (*p != '<')
 		{
 			// It is text element
-			/*
 			TiHtmText *textNode = new TiHtmText("");
 			if (!textNode)
 				return NULL;
@@ -441,7 +441,6 @@ const char *TiHtmElement::readValue(const char *p, TiHtmParsingData *data)
 				linkEndChild(textNode);
 			else
 				delete textNode;
-			*/
 		}
 		else
 		{
@@ -472,19 +471,97 @@ const char *TiHtmElement::readValue(const char *p, TiHtmParsingData *data)
 	}
 }
 
+// the scope of class TiHtmText
 
+const char *TiHtmText::parse(const char *p, TiHtmParsingData *data)
+{
+	value = "";
+	
+	if (data)
+	{
+		data->setStamp(p);
+		location = data->getCursor();
+	}
+	
+	bool ignoreWhite = true;
+	
+	const char *end = "<";
+	p = readText(p, &value, ignoreWhite, end, false);
+	if (p && *p)
+		return p - 1;
+	
+	return NULL;
+}
 
+bool TiHtmText::blank() const
+{
+	for (unsigned int i = 0; i < value.length(); i++)
+	{
+		if (!isWhiteSpace(value[i]))
+			return false;
+	}
+	
+	return true;
+}
 
+// the scope of class TiHtmDocument
 
-
-
-
-
-
-
-
-
-
+const char *TiHtmDocument::parse(const char *p, TiHtmParsingData *prevData)
+{
+	if (!p || !*p)
+	{
+		std::cout << "TiHtmDocument::parse()(1) error" << std::endl;
+		return NULL;
+	}
+	
+	location.clear();
+	if (prevData)
+	{
+		location.row = prevData->cursor.row;
+		location.column = prevData->cursor.column;
+	}
+	else
+	{
+		location.row = 0;
+		location.column = 0;
+	}
+	
+	TiHtmParsingData data(p, tabSize(), location.row, location.column);
+	location = data.getCursor();
+	
+	p = skipWhiteSpace(p);
+	if (!p || !*p)
+	{
+		std::cout << "TiHtmDocument::parse()(2) error" << std::endl;
+		return NULL;
+	}
+	
+	while (p && *p)
+	{
+		TiHtmNode *pnode = identify(p);
+		
+		if (pnode)
+		{
+			p = pnode->parse(p, &data);
+			linkEndChild(pnode);
+		}
+		else
+		{
+			break;
+		}
+		
+		p = skipWhiteSpace(p);
+	}
+	
+	if (!firstChild)
+	{
+		std::cout << "TiHtmDocument::parse()(3) error" << std::endl;
+		return NULL;
+	}
+	
+	// All is OK
+	return p;
+}
 
 
 
