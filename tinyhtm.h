@@ -41,6 +41,7 @@ public:
 	virtual ~TiHtmBase() {}
 
 	virtual void print(FILE *cfile, int depth) const = 0;
+	virtual void printValue(FILE *cfile, int depth) const = 0;
 	virtual const char *parse(const char *p, TiHtmParsingData *data) = 0;
 
 	int row() const { return location.row; }
@@ -297,6 +298,8 @@ public:
 	
 	/// Print the Element to a FILE stream
 	virtual void print(FILE *cfile, int depth) const;
+	/// 打印Value
+	virtual void printValue(FILE *cfile, int depth) const;
 	
 	/// Parse() declared in class TiHTmBase
 	virtual const char *parse(const char *p, TiHtmParsingData *data);
@@ -334,6 +337,8 @@ public:
 	
 	/// Write this text to a FILE stream
 	virtual void print(FILE *cfile, int depth) const;
+	/// 打印value
+	virtual void printValue(FILE *cfile, int depth) const;
 	
 	/// Parse the text
 	virtual const char *parse(const char *p, TiHtmParsingData *data);
@@ -386,6 +391,9 @@ public:
 	
 	void print() const { print(stdout, 0); }
 	virtual void print(FILE *cfile, int depth = 0) const;
+
+	void printValue() const { printValue(stdout, 0); }
+	virtual void printValue(FILE *cfile, int depth = 0) const;
 	
 private:
 	/// Internal use

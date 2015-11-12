@@ -433,6 +433,54 @@ void TiHtmElement::print(FILE *cfile, int depth) const
 	}
 }
 
+void TiHtmElement::printValue(FILE *cfile, int depth) const
+{
+	assert(cfile);
+	
+	for (int i = 0; i < depth; i++)
+	{
+		fprintf(cfile, "    ");
+	}
+	
+	//fprintf(cfile, "<%s", value.c_str());
+	
+	// There are 3 different formatting approaches:
+	// 1) An element without children is printed as a <foo /> node
+	// 2) An element with only a text child is printed as <foo> text </foo>
+	// 3) An element with children is printed on multiple lines.
+	TiHtmNode *pnode = NULL;
+	if (!firstChild)
+	{
+		//fprintf(cfile, " />");
+	}
+	else if (firstChild == lastChild && firstChild->toText())
+	{
+		//fprintf(cfile, ">");
+		firstChild->printValue(cfile, depth + 1);
+		//fprintf(cfile, "</%s>", value.c_str());
+	}
+	else
+	{
+		//fprintf(cfile, ">");
+		
+		for (pnode = firstChild; pnode; pnode = pnode->nextSibling())
+		{
+			if (!pnode->toText())
+			{
+				fprintf(cfile, "\n");
+			}
+			pnode->printValue(cfile, depth + 1);
+		}
+		fprintf(cfile, "\n");
+		
+		for (int i = 0; i < depth; i++)
+		{
+			fprintf(cfile, "    ");
+		}
+		//fprintf(cfile, "</%s>", value.c_str());
+	}
+}
+
 void TiHtmElement::copyTo(TiHtmElement *target) const
 {
 	TiHtmNode::copyTo(target);
@@ -447,6 +495,11 @@ void TiHtmElement::clearThis()
 // the scope of class TiHTmText
 
 void TiHtmText::print(FILE *cfile, int depth) const
+{
+	fprintf(cfile, "%s", value.c_str());
+}
+
+void TiHtmText::printValue(FILE *cfile, int depth) const
 {
 	fprintf(cfile, "%s", value.c_str());
 }
@@ -611,6 +664,17 @@ void TiHtmDocument::print(FILE *cfile, int depth) const
 	for (const TiHtmNode *pnode = getFirstChild(); pnode; pnode = pnode->nextSibling())
 	{
 		pnode->print(cfile, depth);
+		fprintf(cfile, "\n");
+	}
+}
+
+void TiHtmDocument::printValue(FILE *cfile, int depth) const
+{
+	assert(cfile);
+
+	for (const TiHtmNode *pnode = getFirstChild(); pnode; pnode = pnode->nextSibling())
+	{
+		pnode->printValue(cfile, depth);
 		fprintf(cfile, "\n");
 	}
 }
