@@ -318,6 +318,41 @@ protected:
 	const char *readValue(const char *in, TiHtmParsingData *prevData);
 };
 
+// An HTML comment
+class TiHtmComment : public TiHtmNode 
+{
+public:
+	/// Construct an empty comment.
+	TiHtmComment() : TiHtmNode(TiHtmNode::TINYHTM_COMMENT) {}
+	/// Construct an empty comment for test.
+	TiHtmComment(const char* _value) : TiHtmNode(TiHtmNode::TINYHTM_COMMENT) 
+	{
+		setValue(_value);
+	}
+	TiHtmComment(const TiHtmComment&);
+	TiHtmComment& operator=(const TiHtmComment& base);
+	
+	virtual ~TiHtmComment() {}
+	
+	/// Return a copy of this comment
+	virtual TiHtmNode* clone() const;
+	
+	/// Write this Comment to a FILE stream
+	virtual void print(FILE *cfile, int depth) const;
+	/// 打印Value
+	virtual void printValue(FILE *cfile, int depth) const;
+	
+	/// Pasesing starts: at the ! of the !--
+	///			 returns: next char past '>'
+	virtual const char* parse(const char* p, TiHtmParsingData* data);
+	
+	virtual const TiHtmComment* toComment() const { return this; }
+	virtual 	TiHtmComment* toComment()	{ return this; }
+
+protected:
+	void copyTo(TiHtmComment* target) const;
+};
+
 class TiHtmText : public TiHtmNode
 {
 	friend class TiHtmElement;

@@ -484,13 +484,57 @@ void TiHtmElement::printValue(FILE *cfile, int depth) const
 void TiHtmElement::copyTo(TiHtmElement *target) const
 {
 	TiHtmNode::copyTo(target);
-	
 }
 
 void TiHtmElement::clearThis()
 {
 	clear();
 }
+
+// the scope of class TiHtmComment (start)
+
+TiHtmComment::TiHtmComment(const TiHtmComment& copy) : TiHtmNode(TiHtmNode::TINYHTM_COMMENT)
+{
+	copy.copyTo(this);
+}
+
+TiHtmComment& TiHtmComment::operator=(const TiHtmComment& base)
+{
+	clear();
+	base.copyTo(this);
+	return *this;
+}
+
+TiHtmNode* TiHtmComment::clone() const
+{
+	TiHtmComment* clone = new TiHtmComment();
+	
+	if (!clone)
+		return NULL;
+	
+	copyTo(clone);
+	return clone;
+}
+
+void TiHtmComment::print(FILE *cfile, int depth) const
+{
+	assert(cfile);
+	for (int i = 0; i < depth; i++)
+	{
+		fprintf(cfile, "    ");
+	}
+	fprintf(cfile, "<!--%s-->", value.c_str());
+}
+void TiHtmComment::printValue(FILE *cfile, int depth) const
+{
+	// Empty
+}
+
+void TiHtmComment::copyTo(TiHtmComment* target) const
+{
+	TiHtmNode::copyTo(target);
+}
+// the scope of class TiHtmComment (end)
 
 // the scope of class TiHTmText
 

@@ -297,7 +297,7 @@ TiHtmNode *TiHtmNode::identify(const char *p)
 	else */
 	if (stringEqual(p, commentHeader, true))
 	{
-		//returnNode = new TiHtmComment();
+		returnNode = new TiHtmComment();
 	}
 	else if (stringEqual(p, dtdHeader, true))
 	{
@@ -470,6 +470,39 @@ const char *TiHtmElement::readValue(const char *p, TiHtmParsingData *data)
 		p = skipWhiteSpace(p);
 	}
 }
+
+// the scope of class TiHtmComment (start)
+const char* TiHtmComment::parse(const char* p, TiHtmParsingData* data)
+{
+	p = skipWhiteSpace(p);
+	
+	if (data)
+	{
+		data->setStamp(p);
+		location = data->getCursor();
+	}
+	const char* startTag = "<!--";
+	const char* endTag = "-->";
+	
+	if (!stringEqual(p, startTag, false))
+	{
+		return NULL;
+	}
+	p += strlen(startTag);
+	
+	value = "";
+	// Keep all the white space
+	while (p && *p && !stringEqual(p, endTag, false))
+	{
+		value.append(p, 1);
+		++p;
+	}
+	if (p && *p)
+		p += strlen(endTag);
+	
+	return p;
+}
+// the scope of class TiHtmComment (end)
 
 // the scope of class TiHtmText
 
