@@ -390,6 +390,42 @@ protected:
 	bool blank() const;
 };
 
+// An Unknown node of html file
+class TiHtmUnknown : public TiHtmNode
+{
+public:
+	TiHtmUnknown() : TiHtmNode(TiHtmNode::TINYHTM_UNKNOWN), valueIsVisible(false) {}
+	virtual ~TiHtmUnknown() {}
+	
+	TiHtmUnknown(const TiHtmUnknown& copy) : TiHtmNode(TiHtmNode::TINYHTM_UNKNOWN) { copy.copyTo(this); }
+	TiHtmUnknown& operator=(const TiHtmUnknown& copy) 
+	{ 
+		copy.copyTo(this); 
+		return *this; 
+	}
+	
+	/// Creates a copy of this Unknown and returns it
+	virtual TiHtmUnknown* clone() const;
+	
+	/// Set the valueIsVisible, printValue是否打印Unknown的text
+	void setValueVisible(bool flag) { valueIsVisible = flag; }
+	
+	/// Print this Unknow to a FILE stream
+	virtual void print(FILE* cfile, int depth) const;
+	/// Onlyu print this Unknow text to a FILE stream
+	virtual void printValue(FILE* cfile, int depth) const;
+	
+	virtual const char* parse(const char* p, TiHtmParsingData* data);
+	
+	virtual const TiHtmUnknown* toUnknown() const { return this; }
+	virtual 	TiHtmUnknown* toUnknown()		{ return this; }
+
+protected:
+	void copyTo(TiHtmUnknown* target) const;
+	
+	bool valueIsVisible;
+};
+
 class TiHtmDocument : public TiHtmNode
 {
 public:

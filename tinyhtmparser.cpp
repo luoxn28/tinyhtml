@@ -309,7 +309,7 @@ TiHtmNode *TiHtmNode::identify(const char *p)
 	}
 	else
 	{
-		//returnNode = new TiHtmElement();
+		returnNode = new TiHtmUnknown();
 	}
 	
 	if (returnNode)
@@ -327,7 +327,7 @@ const char *TiHtmElement::parse(const char *p, TiHtmParsingData *data)
 {	
 	if (!p || !*p)
 	{ 
-		std::cout << "TiHtmNode::parse()(1) error" << std::endl;
+		std::cout << "TiHtmElement::parse()(1) error" << std::endl;
 		return NULL;
 	}
 	
@@ -341,7 +341,7 @@ const char *TiHtmElement::parse(const char *p, TiHtmParsingData *data)
 	
 	if (*p != '<')
 	{
-		std::cout << "TiHtmNode::parse()(2) error" << std::endl;
+		std::cout << "TiHtmElement::parse()(2) error" << std::endl;
 		return NULL;
 	}
 	
@@ -350,7 +350,7 @@ const char *TiHtmElement::parse(const char *p, TiHtmParsingData *data)
 	p = readName(p, &value);
 	if (!p || !*p)
 	{
-		std::cout << "TiHtmNode::parse()(3) error" << std::endl;
+		std::cout << "TiHtmElement::parse()(3) error" << std::endl;
 		return NULL;
 	}
 	
@@ -362,7 +362,7 @@ const char *TiHtmElement::parse(const char *p, TiHtmParsingData *data)
 		p = skipWhiteSpace(p);
 		if (!p || !*p)
 		{
-			std::cout << "TiHtmNode::parse()(4) error" << std::endl;
+			std::cout << "TiHtmElement::parse()(4) error" << std::endl;
 			return NULL;
 		}
 		
@@ -371,7 +371,7 @@ const char *TiHtmElement::parse(const char *p, TiHtmParsingData *data)
 			p++;
 			if (*p != '>')
 			{
-				std::cout << "TiHtmNode::parse()(5) error" << std::endl;
+				std::cout << "TiHtmElement::parse()(5) error" << std::endl;
 				return (p + 1);
 			}
 		}
@@ -384,7 +384,7 @@ const char *TiHtmElement::parse(const char *p, TiHtmParsingData *data)
 			p = readValue(p, data);
 			if (!p || !*p)
 			{
-				std::cout << "TiHtmNode::parse()(6) error" << std::endl;
+				std::cout << "TiHtmElement::parse()(6) error" << std::endl;
 				return NULL;
 			}
 			
@@ -398,12 +398,12 @@ const char *TiHtmElement::parse(const char *p, TiHtmParsingData *data)
 					return p;
 				}
 				
-				std::cout << "TiHtmNode::parse()(7) error" << std::endl;
+				std::cout << "TiHtmElement::parse()(7) error" << std::endl;
 				return NULL;
 			}
 			else
 			{
-				std::cout << "TiHtmNode::parse()(8) error" << std::endl;
+				std::cout << "TiHtmElement::parse()(8) error" << std::endl;
 				return NULL;
 			}
 		}
@@ -412,7 +412,7 @@ const char *TiHtmElement::parse(const char *p, TiHtmParsingData *data)
 			p++;
 			if (!p || !*p)
 			{
-				std::cout << "TiHtmNode::parse()(9) error" << std::endl;
+				std::cout << "TiHtmElement::parse()(9) error" << std::endl;
 				return NULL;
 			}
 		}
@@ -472,6 +472,7 @@ const char *TiHtmElement::readValue(const char *p, TiHtmParsingData *data)
 }
 
 // the scope of class TiHtmComment (start)
+
 const char* TiHtmComment::parse(const char* p, TiHtmParsingData* data)
 {
 	p = skipWhiteSpace(p);
@@ -504,7 +505,7 @@ const char* TiHtmComment::parse(const char* p, TiHtmParsingData* data)
 }
 // the scope of class TiHtmComment (end)
 
-// the scope of class TiHtmText
+// the scope of class TiHtmText (start)
 
 const char *TiHtmText::parse(const char *p, TiHtmParsingData *data)
 {
@@ -536,6 +537,35 @@ bool TiHtmText::blank() const
 	
 	return true;
 }
+// the scope of class TiHtmText (end)
+
+// the scope of class TiHtmUnknown (start)
+
+const char* TiHtmUnknown::parse(const char* p, TiHtmParsingData* data)
+{
+	p = skipWhiteSpace(p);
+	
+	if (data)
+	{
+		data->setStamp(p);
+		location = data->getCursor();
+	}
+	
+	if (!p || !*p || *p != '<')
+		return NULL;
+	
+	++p;
+	value = "";
+	while (p && *p && *p != '>')
+	{
+		value += *p;
+		++p;
+	}
+	if (p && *p == '>')
+		return p + 1;
+	return p;
+}
+// the scope of class TiHtmUnknown (end)
 
 // the scope of class TiHtmDocument
 

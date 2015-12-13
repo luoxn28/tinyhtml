@@ -536,10 +536,11 @@ void TiHtmComment::copyTo(TiHtmComment* target) const
 }
 // the scope of class TiHtmComment (end)
 
-// the scope of class TiHTmText
+// the scope of class TiHtmText (start)
 
 void TiHtmText::print(FILE *cfile, int depth) const
 {
+	assert(cfile);
 	fprintf(cfile, "%s", value.c_str());
 }
 
@@ -559,6 +560,39 @@ TiHtmText *TiHtmText::clone() const
 	copyTo(clone);
 	return clone;
 }
+// the scope of class TiHtmText (end)
+
+// the scope of class TiHtmUnknown (start)
+
+TiHtmUnknown* TiHtmUnknown::clone() const
+{
+	TiHtmUnknown* clone = new TiHtmUnknown();
+	
+	if (!clone)
+		return NULL;
+	copyTo(clone);
+	return clone;
+}
+
+void TiHtmUnknown::printValue(FILE* cfile, int depth) const
+{
+	if (valueIsVisible)
+		fprintf(cfile, "%s", value.c_str());
+}
+
+void TiHtmUnknown::print(FILE* cfile, int depth) const
+{
+	assert(cfile);
+	for (int i = 0; i < depth; i++)
+		fprintf(cfile, "    ");
+	fprintf(cfile, "<%s>", value.c_str());
+}
+
+void TiHtmUnknown::copyTo(TiHtmUnknown* target) const
+{
+	TiHtmNode::copyTo(target);
+}
+// the scope of class TiHtmUnknown (start)
 
 // the scope of class TiHtmDocument
 
