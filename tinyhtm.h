@@ -286,7 +286,7 @@ enum
 	TIHTM_WRONG_TYPE
 };
 
-
+// 属性节点
 class TiHtmAttribute : public TiHtmBase
 {
 	friend class TiHtmAttributeSet;
@@ -304,10 +304,10 @@ public:
 		prev = next = NULL;
 	}
 	
-	const char* getName() const { return name.c_str(); }
-	const char* getValue() const { return value.c_str(); }
-	const std::string& getNameStr() const { return name; }
-	const std::string& getValueStr() const { return value; }
+	const char* getNameStr() const { return name.c_str(); }
+	const char* getValueStr() const { return value.c_str(); }
+	const std::string& getName() const { return name; }
+	const std::string& getValue() const { return value; }
 	
 	/// Returns the value of this attribute, converted to an interger.
 	int intValue() const;
@@ -320,7 +320,7 @@ public:
 	int queryDoubleValue(double* _value) const;
 	
 	void setName(const char* _name) { name = _name; }
-	void setNmae(const std::string& _name) { name = _name; }
+	void setName(const std::string& _name) { name = _name; }
 	void setValue(const char* _value) { value = _value; }
 	void setValue(const std::string& _value) { value = _value; }
 	
@@ -360,8 +360,10 @@ public:
 	}
 	void print(FILE* cfile, int depth, std::string* str) const;
 	
+	virtual void printValue(FILE *cfile, int depth) const;
+	
 private:
-	// Not allow copy assign
+	/// Not allow copy assign
 	TiHtmAttribute(const TiHtmAttribute&);
 	TiHtmAttribute& operator=(const TiHtmAttribute& base);
 	
@@ -371,9 +373,35 @@ private:
 	TiHtmAttribute* next;
 };
 
+// 属性集合
 class TiHtmAttributeSet
 {
+public:
+	TiHtmAttributeSet();
+	~TiHtmAttributeSet();
 	
+	/// Add an arrtibute to this set
+	void add(TiHtmAttribute* arrtibute);
+	/// Remove an arrtibute from this set
+	void remove(TiHtmAttribute* arrtibute);
+	
+	const TiHtmAttribute* first() const { return (sentinel.next == &sentinel) ? NULL : sentinel.next; }
+	TiHtmAttribute* first() 		 { return (sentinel.next == &sentinel) ? NULL : sentinel.next; }
+	const TiHtmAttribute* last() const  { return (sentinel.prev == &sentinel) ? NULL : sentinel.prev; }
+	TiHtmAttribute* last() 			 { return (sentinel.prev == &sentinel) ? NULL : sentinel.prev; }
+	
+	TiHtmAttribute* find(const char* _name) const;
+	TiHtmAttribute* findOrCreate(const char* _name);
+	
+	TiHtmAttribute* find(const std::string& _name) const;
+	TiHtmAttribute* findOrCreate(const std::string& _name);
+
+private:
+	/// Not allow copy assign
+	TiHtmAttributeSet(const TiHtmAttributeSet&);
+	TiHtmAttributeSet& operator=(const TiHtmAttributeSet& base);
+	
+	TiHtmAttribute sentinel;
 };
 
 class TiHtmElement : public TiHtmNode
@@ -389,8 +417,62 @@ public:
 
 	virtual ~TiHtmElement();
 	
+	const char* attribute(const char* name) const;
+	/// 如果*i不为NULL时，会将value转换为int型并存到i指向的内存中
+	const char* attribute(const char* name, int* i) const;
+	const char* attribute(const char* name, double* d) const;
+	
+	/// QueryIntAttribute examines the attribute, store in _value
+	int QueryIntAttribute(const char* name, int* _value) const;
+	/// QueryUnsignedAttribute examines the attribute, store in _value
+	int queryUnsignedAttribute(const char* name, unsigned* _value) const;
+	/// QueryBoolAttribute examines the attribute, store in _value
+	int queryBoolAttribute(const char* name, bool* _value) const;
+	/// QueryDoubleAttribute examines the attribute, store in _value
+	int queryDoubleAttribute(const char* name, double* _value) const;
+	/// QueryFloatAttribute examines the attribute, store in _value
+	int queryFloatAttribute(const char* name, float* _value) const
+	{
+		double d;
+		int result = queryDoubleAttribute(name, &d);
+		if (result == TIHTM_SUCCESS)
+		{
+			*_value = (float)d;
+		}
+		return result;
+	}
+	
+	/// std::string 相关操作
+	const std::string* attribute(const std::string& name) const;
+	const std::string* attribute(const std::string& name, int* i) const;
+	const std::string* attribute(const std::string& name, double* d) const;
+	int queryIntAttribute(const std::string& name, int* value) const { return queryIntAttribute(name.c_str(), value); }
+	int queryDoubleAttribute(const std::string& name, double* value) const { queryDoubleAttribute(name.c_str(), value); }
+	/// std::string 相关操作
+	void setAttribute(const std::string& name, const std::string& value) { setAttribute(name.c_str(), value.c_str()); }
+	void setAttribute(const std::string& name, int value) { setAttribute(name.c_str(), value); }
+	void setDoubleAttribute(const std::string& name, double value) { setDoubleAttribute(name.c_str(), value); }
+	
+	/// Sets an attribute of name to a string value. This attribute will created if it does not exist.
+	void setAttribute(const char* name, const char* value);
+	/// Sets an attribute of name to a int value. This attribute will created if it does not exist.
+	void setAttribute(const char* name, int value);
+	/// Sets an attribute of name to a double value. This attribute will created if it does not exist.
+	void setDoubleAttribute(const char* name, double value);
+	
+	/// Deletes an attribute with the given name.
+	void removeAttribute(const char *name);
+	void removeAttribute(const std::string& name) { removeAttribute(name.c_str()); }
+	
+	/// Access the first attribute in this element.
+	const TiHtmAttribute* firstAttribute() const { return attributeSet.first(); }
+	TiHtmAttribute* firstAttribute() 			{ return attributeSet.first(); }
+	/// Access the last attribute in this element.
+	const TiHtmAttribute* lastAttribute() const { return attributeSet.last(); }
+	TiHtmAttribute* lastAttribute()			 { return attributeSet.last(); }
+	
 	/// 如果element的第一个child不是text，则返回null，否则返回text的字符串
-	//const char *getText() const;
+	const char *getText() const;
 	
 	/// Creates a new Element and returns it - the returned element is a copy.
 	virtual TiHtmNode *clone() const;
@@ -401,6 +483,8 @@ public:
 	virtual void printValue(FILE *cfile, int depth) const;
 	
 	/// Parse() declared in class TiHTmBase
+	/// Attribute parsing starts: next char past '<'
+	///					  returns: next char past '>'
 	virtual const char *parse(const char *p, TiHtmParsingData *data);
 	
 	virtual const TiHtmElement *toElement() const { return this; }
@@ -415,6 +499,9 @@ protected:
 		This should terminate with the current end tag.
 	*/
 	const char *readValue(const char *in, TiHtmParsingData *prevData);
+
+private:
+	TiHtmAttributeSet attributeSet;
 };
 
 // An HTML comment

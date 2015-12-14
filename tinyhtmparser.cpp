@@ -398,7 +398,8 @@ const char* TiHtmAttribute::parse(const char* p, TiHtmParsingData* data)
 
 /// 真正开始parse的第一个字符必须是'<'
 const char *TiHtmElement::parse(const char *p, TiHtmParsingData *data)
-{	
+{
+	p = skipWhiteSpace(p);
 	if (!p || !*p)
 	{ 
 		std::cout << "TiHtmElement::parse()(1) error" << std::endl;
@@ -446,8 +447,9 @@ const char *TiHtmElement::parse(const char *p, TiHtmParsingData *data)
 			if (*p != '>')
 			{
 				std::cout << "TiHtmElement::parse()(5) error" << std::endl;
-				return (p + 1);
+				return NULL;
 			}
+			return (p + 1);
 		}
 		else if (*p == '>')
 		{
@@ -483,12 +485,29 @@ const char *TiHtmElement::parse(const char *p, TiHtmParsingData *data)
 		}
 		else
 		{
-			p++;
+			// Try to read an attribute:
+			TiHtmAttribute* pattribute = new TiHtmAttribute();
+			if (!pattribute)
+				return NULL;
+			
+			p = pattribute->parse(p, data);
+			
 			if (!p || !*p)
 			{
 				std::cout << "TiHtmElement::parse()(9) error" << std::endl;
 				return NULL;
 			}
+			
+			// Handler the strange case of double attributes list:
+			TiHtmAttribute* ptmp = attributeSet.find(pattribute->getNameStr());
+			if (ptmp)
+			{
+				// pattribute is exists in attributeSet
+				delete pattribute;
+				return NULL;
+			}
+			
+			attributeSet.add(pattribute);
 		}
 	}
 	

@@ -503,7 +503,100 @@ void TiHtmAttribute::print(FILE* cfile, int /*depth*/, std::string* str) const
 		}
 	}
 }
+
+void TiHtmAttribute::printValue(FILE *cfile, int depth) const
+{
+	//
+}
 // the scope of class TiHtmAttribute (end)
+
+// the scope of class TiHtmAttributeSet (start)
+
+TiHtmAttributeSet::TiHtmAttributeSet()
+{
+	sentinel.next = &sentinel;
+	sentinel.prev = &sentinel;
+}
+
+TiHtmAttributeSet::~TiHtmAttributeSet()
+{
+	assert(sentinel.next = &sentinel);
+	assert(sentinel.prev = &sentinel);
+}
+
+void TiHtmAttributeSet::add(TiHtmAttribute* addMe)
+{
+	assert(!find(addMe->getName()));
+	
+	addMe->next = &sentinel;
+	addMe->prev = sentinel.prev;
+	
+	sentinel.prev->next = addMe;
+	sentinel.prev = addMe;
+}
+
+void TiHtmAttributeSet::remove(TiHtmAttribute* removeMe)
+{
+	TiHtmAttribute* pnode;
+	
+	for (pnode = sentinel.next; pnode != &sentinel; pnode = pnode->next)
+	{
+		if (pnode == removeMe) // 这个地方并没有负责释放removeMe所占用内存，而是由调用函数负责释放的
+		{
+			pnode->prev->next = pnode->next;
+			pnode->next->prev = pnode->prev;
+			pnode->next = NULL;
+			pnode->prev = NULL;
+			return;
+		}
+	}
+	assert(0);
+}
+
+TiHtmAttribute* TiHtmAttributeSet::find(const char* name) const
+{
+	for (TiHtmAttribute* pnode = sentinel.next; pnode != &sentinel; pnode = pnode->next)
+	{
+		if (pnode->name == name)
+			return pnode;
+	}
+	return NULL;
+}
+
+TiHtmAttribute* TiHtmAttributeSet::findOrCreate(const char* _name)
+{
+	TiHtmAttribute* attr = find(_name);
+	if (!attr)
+	{
+		attr = new TiHtmAttribute();
+		add(attr);
+		attr->setName(_name);
+	}
+	return attr;
+}
+
+TiHtmAttribute* TiHtmAttributeSet::find(const std::string& name) const
+{
+	for (TiHtmAttribute* pnode = sentinel.next; pnode != &sentinel; pnode = pnode->next)
+	{
+		if (pnode->name == name)
+			return pnode;
+	}
+	return NULL;
+}
+
+TiHtmAttribute* TiHtmAttributeSet::findOrCreate(const std::string& _name)
+{
+	TiHtmAttribute* attr = find(_name);
+	if (!attr)
+	{
+		attr = new TiHtmAttribute();
+		add(attr);
+		attr->setName(_name);
+	}
+	return attr;
+}
+// the scope of class TiHtmAttributeSet (end)
 
 // the scope of class TiHtmElement
 
@@ -530,8 +623,178 @@ TiHtmElement::~TiHtmElement()
 	clearThis();
 }
 
+const char* TiHtmElement::attribute(const char* name) const
+{
+	const TiHtmAttribute* pnode = attributeSet.find(name);
+	if (pnode)
+		return pnode->getValueStr();
+	return NULL;
+}
+const char* TiHtmElement::attribute(const char* name, int* i) const
+{
+	const TiHtmAttribute* pnode = attributeSet.find(name);
+	const char* result = NULL;
+	
+	if (pnode)
+	{
+		result = pnode->getValueStr();
+		if (i)
+		{
+			pnode->queryIntValue(i);
+		}
+	}
+	return result;
+}
+
+const char* TiHtmElement::attribute(const char* name, double* d) const
+{
+	const TiHtmAttribute* pnode = attributeSet.find(name);
+	const char* result = NULL;
+	
+	if (pnode)
+	{
+		result = pnode->getValueStr();
+		if (d)
+		{
+			pnode->queryDoubleValue(d);
+		}
+	}
+	return result;
+}
+
+int TiHtmElement::QueryIntAttribute(const char* name, int* ival) const
+{
+	const TiHtmAttribute* pnode = attributeSet.find(name);
+	if (!pnode)
+		return TIHTM_NO_ATTRIBUTE;
+	return pnode->queryIntValue(ival);
+}
+
+int TiHtmElement::queryUnsignedAttribute(const char* name, unsigned* _value) const
+{
+	const TiHtmAttribute* pnode = attributeSet.find(name);
+	if (!pnode)
+		return TIHTM_NO_ATTRIBUTE;
+	
+	int ival = 0;
+	int result = pnode->queryIntValue(&ival);
+	*_value = (unsigned)ival;
+	return result;
+}
+
+int TiHtmElement::queryBoolAttribute(const char* name, bool* bval) const
+{
+	const TiHtmAttribute* pnode = attributeSet.find(name);
+	if (!pnode)
+		return TIHTM_NO_ATTRIBUTE;
+	
+	int result = TIHTM_WRONG_TYPE;
+	if (stringEqual(pnode->getValue().c_str(), "true", true)
+		|| stringEqual(pnode->getValue().c_str(), "yes", true)
+		|| stringEqual(pnode->getValue().c_str(), "1", true))
+	{
+		*bval = true;
+		result = TIHTM_SUCCESS;
+	}
+	else if (stringEqual(pnode->getValue().c_str(), "false", true)
+		|| stringEqual(pnode->getValue().c_str(), "no", true)
+		|| stringEqual(pnode->getValue().c_str(), "0", true))
+	{
+		*bval = false;
+		result = TIHTM_SUCCESS;
+	}
+	
+	return result;
+}
+
+int TiHtmElement::queryDoubleAttribute(const char* name, double* dval) const
+{
+	const TiHtmAttribute* pnode = attributeSet.find(name);
+	if (!pnode)
+		return TIHTM_NO_ATTRIBUTE;
+	return pnode->queryDoubleValue(dval);
+}
+
+const std::string* TiHtmElement::attribute(const std::string& name) const
+{
+	const TiHtmAttribute* pnode = attributeSet.find(name);
+	if (pnode)
+		return &pnode->getValue();
+	return NULL;
+}
+
+const std::string* TiHtmElement::attribute(const std::string& name, int* i) const
+{
+	const TiHtmAttribute* pnode = attributeSet.find(name);
+	const std::string* result = NULL;
+	
+	if (pnode)
+	{
+		result = &pnode->getValue();
+		if (i)
+		{
+			pnode->queryIntValue(i);
+		}
+	}
+	return result;
+}
+
+const std::string* TiHtmElement::attribute(const std::string& name, double* d) const
+{
+	const TiHtmAttribute* pnode = attributeSet.find(name);
+	const std::string* result = NULL;
+	
+	if (pnode)
+	{
+		result = &pnode->getValue();
+		if (d)
+		{
+			pnode->queryDoubleValue(d);
+		}
+	}
+	return result;
+}
+
+void TiHtmElement::setAttribute(const char* name, const char* value)
+{
+	TiHtmAttribute* pnode = attributeSet.findOrCreate(name);
+	if (pnode)
+	{
+		pnode->setValue(value);
+	}
+}
+
+void TiHtmElement::setAttribute(const char* name, int value)
+{
+	TiHtmAttribute* pnode = attributeSet.findOrCreate(name);
+	if (pnode)
+	{
+		pnode->setIntValue(value);
+	}
+}
+
+void TiHtmElement::setDoubleAttribute(const char* name, double value)
+{
+	TiHtmAttribute* pnode = attributeSet.findOrCreate(name);
+	if (pnode)
+	{
+		pnode->setDoubleValue(value);
+	}
+}
+
+void TiHtmElement::removeAttribute(const char *name)
+{
+	TiHtmAttribute* pnode = attributeSet.find(name);
+	
+	if (pnode)
+	{
+		attributeSet.remove(pnode);
+		delete pnode;
+	}
+}
+
 /// 如果element的第一个child不是text，则返回null，否则返回text的字符串
-/*
+
 const char *TiHtmElement::getText() const
 {
 	const TiHtmNode *child = this->getFirstChild();
@@ -540,12 +803,12 @@ const char *TiHtmElement::getText() const
 		const TiHtmText *childText = child->toText();
 		if (childText)
 		{
-			//return childText->getValue();
+			return childText->getValueStr();
 		}
 	}
 	return NULL;
 }
-*/
+
 
 TiHtmNode *TiHtmElement::clone() const
 {
@@ -568,6 +831,13 @@ void TiHtmElement::print(FILE *cfile, int depth) const
 	}
 	
 	fprintf(cfile, "<%s", value.c_str());
+	
+	const TiHtmAttribute* pattr;
+	for (pattr = attributeSet.first(); pattr; pattr = pattr->getNext())
+	{
+		fprintf(cfile, " ");
+		pattr->print(cfile, depth);
+	}
 	
 	// There are 3 different formatting approaches:
 	// 1) An element without children is printed as a <foo /> node
@@ -662,6 +932,12 @@ void TiHtmElement::copyTo(TiHtmElement *target) const
 void TiHtmElement::clearThis()
 {
 	clear();
+	while (attributeSet.first())
+	{
+		TiHtmAttribute* pnode = attributeSet.first();
+		attributeSet.remove(pnode);
+		delete pnode;
+	}
 }
 
 // the scope of class TiHtmComment (start)
