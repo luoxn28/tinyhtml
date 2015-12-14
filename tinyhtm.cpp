@@ -1,3 +1,6 @@
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include "tinyhtm.h"
 
 const char *TIHTMVERSION = "intyhtml-0.1";
@@ -12,6 +15,81 @@ static FILE *TiHtmOpen(const char *filename, const char *mode)
 }
 
 // the scope of class TiHtmBase
+
+void TiHtmBase::encodeString(const std::string& str, std::string* outString)
+{
+	int i = 0, len = str.length();
+	
+	while (i < len)
+	{
+		unsigned char c = (unsigned char)str[i];
+		
+		if (c == '&' && (i < len - 2) && (str[i+1] == '#') && (str[i+2] == 'x'))
+		{
+			// Hexadecimal character reference.
+			// Pass through unchanged.
+			// &#xA9;	-- copyright symbol, for example.
+			//
+			// The -1 is a bug fix from Rob Laveaux. It keeps
+			// an overflow from happening if there is no ';'.
+			// There are actually 2 ways to exit this loop -
+			// while fails (error case) and break (semicolon found).
+			// However, there is no mechanism (currently) for
+			// this function to return an error.
+			while (i < len - 1)
+			{
+				outString->append(str.c_str() + i, 1);
+				++i;
+				if ( str[i] == ';' )
+					break;
+			}
+		}
+		else if (c == '&')
+		{
+			outString->append(entity[0].str, entity[0].strLength);
+			++i;
+		}
+		else if ( c == '<' )
+		{
+			outString->append(entity[1].str, entity[1].strLength);
+			++i;
+		}
+		else if ( c == '>' )
+		{
+			outString->append(entity[2].str, entity[2].strLength);
+			++i;
+		}
+		else if ( c == '\"' )
+		{
+			outString->append(entity[3].str, entity[3].strLength);
+			++i;
+		}
+		else if ( c == '\'' )
+		{
+			outString->append(entity[4].str, entity[4].strLength);
+			++i;
+		}
+		// 特殊不显示的字符
+		else if (c < 32)
+		{
+			// Easy pass at non-alpha/numeric/symbol
+			// Below 32 is symbolic.
+			char buf[ 32 ];
+			
+			snprintf(buf, sizeof(buf), "&#x%02X;", (unsigned)( c & 0xff ));
+
+			//*ME:	warning C4267: convert 'size_t' to 'int'
+			//*ME:	Int-Cast to make compiler happy ...
+			outString->append( buf, (int)strlen( buf ) );
+			++i;
+		}
+		else
+		{
+			*outString += (char)c;
+			++i;
+		}
+	}
+}
 
 // the scope of class TiHtmNode
 
@@ -331,6 +409,101 @@ void TiHtmNode::copyTo(TiHtmNode *target) const
 	target->setValue(value.c_str());
 	target->location = location;
 }
+// the scope of class TiHtmNode (end)
+
+// the scope of class TiHtmAttribute (start)
+
+int TiHtmAttribute::intValue() const
+{
+	return atoi(value.c_str());
+}
+
+double TiHtmAttribute::doubleValue() const
+{
+	return atof(value.c_str());
+}
+
+int TiHtmAttribute::queryIntValue(int* ival) const
+{
+	if (sscanf(value.c_str(), "%d", ival) == 1)
+		return TIHTM_SUCCESS;
+	return TIHTM_WRONG_TYPE;
+}
+
+int TiHtmAttribute::queryDoubleValue(double* dval) const{
+	if (sscanf(value.c_str(), "%lf", dval) == 1)
+		return TIHTM_SUCCESS;
+	return TIHTM_WRONG_TYPE;
+}
+
+void TiHtmAttribute::setIntValue(int _value)
+{
+	char buf[64] = {0};
+	
+	snprintf(buf, sizeof(buf), "%d", _value);
+	setValue(buf);
+}
+
+void TiHtmAttribute::setDoubleValue(double _value)
+{
+	char buf[256] = {0};
+	
+	snprintf(buf, sizeof(buf), "%g", _value);
+	setValue(buf);
+}
+
+const TiHtmAttribute* TiHtmAttribute::getNext() const
+{
+	// The sentinel have a value or name.
+	if (!next || (next->value.empty() && next->name.empty()))
+		return NULL;
+	return next;
+}
+
+const TiHtmAttribute* TiHtmAttribute::getPrevious() const
+{
+	// The sentinel have a value or name.
+	if (!prev || (prev->value.empty() && prev->name.empty()))
+		return NULL;
+	return prev;
+}
+void TiHtmAttribute::print(FILE* cfile, int /*depth*/, std::string* str) const
+{
+	std::string n, v;
+	
+	encodeString(name, &n);
+	encodeString(value, &v);
+	
+	if (value.find('\"') == std::string::npos)
+	{
+		if (cfile)
+		{
+			fprintf(cfile, "%s=\"%s\"", n.c_str(), v.c_str());
+		}
+		if (str)
+		{
+			(*str) += n;
+			(*str) += "=\"";
+			(*str) += v;
+			(*str) += "\"";
+		}
+	}
+	else
+	{
+		if (cfile)
+		{
+			fprintf(cfile, "%s='%s'", n.c_str(), v.c_str());
+		}
+		if (str)
+		{
+			(*str) += n;
+			(*str) += "='";
+			(*str) += v;
+			(*str) += "'";
+		}
+	}
+}
+// the scope of class TiHtmAttribute (end)
 
 // the scope of class TiHtmElement
 

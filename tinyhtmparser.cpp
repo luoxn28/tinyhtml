@@ -320,6 +320,80 @@ TiHtmNode *TiHtmNode::identify(const char *p)
 	return returnNode;
 }
 
+// the scope of class TiHtmAttribute
+
+const char* TiHtmAttribute::parse(const char* p, TiHtmParsingData* data)
+{
+	p = skipWhiteSpace(p);
+	if (!p || !*p)
+		return NULL;
+	
+	if (data)
+	{
+		data->setStamp(p);
+		location = data->getCursor();
+	}
+	
+	// Read the name, the '=' and the value
+	p = readName(p, &name);
+	if (!p || !*p)
+	{
+		std::cout << "TiHtmAttribute::parse() error" << std::endl;
+		return NULL;
+	}
+	p = skipWhiteSpace(p);
+	if (!p || !*p || *p != '=')
+	{
+		std::cout << "TiHtmAttribute::parse() (2) error" << std::endl;
+		return NULL;
+	}
+	
+	// Skip '='
+	++p;
+	p = skipWhiteSpace(p);
+	if (!p || !*p)
+	{
+		std::cout << "TiHtmAttribute::parse() (3) error" << std::endl;
+		return NULL;
+	}
+	
+	const char* end;
+	const char SINGLE_QUOTE = '\'';
+	const char DOUBLE_QUOTE = '\"';
+	
+	if (*p == SINGLE_QUOTE)
+	{
+		++p;
+		end = "\'";
+		p = readText(p, &value, false, end, false);
+	}
+	else if (*p == DOUBLE_QUOTE)
+	{
+		++p;
+		end = "\"";
+		p = readText(p, &value, false, end, false);
+	}
+	else
+	{
+		// All attribute values should be in single or double quotes.
+		// But this is such a common error that the parser will try
+		// its best, even without them.
+		value = "";
+		while (p && *p && !isWhiteSpace(*p) && *p != '/' && *p != '>')
+		{
+			if (*p == SINGLE_QUOTE || *p == DOUBLE_QUOTE)
+			{
+				std::cout << "TiHtmAttribute::parse() (4) error" << std::endl;
+				return NULL;
+			}
+			value += *p;
+			++p;
+		}
+	}
+	
+	return p;
+}
+
 // the scope of class TiHtmElement
 
 /// 真正开始parse的第一个字符必须是'<'

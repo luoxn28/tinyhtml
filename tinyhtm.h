@@ -47,7 +47,8 @@ public:
 	int row() const { return location.row; }
 	int column() const { return location.row; }
 
-	//static void encodeString(const char *str, char *out); // not write code
+	/// Expands entities in a string. Note this should not contian the tag '<', '>', etc.
+	static void encodeString(const std::string& str, std::string* out); // not write code
 
 protected:
 	static bool isWhiteSpace(char c);
@@ -275,6 +276,104 @@ protected:
 private:
 	TiHtmNode(const TiHtmNode &);			// not implemented
 	void operator=(const TiHtmNode &base); // not implemented
+};
+
+// Only used by Attribute::Query functions
+enum 
+{ 
+	TIHTM_SUCCESS,
+	TIHTM_NO_ATTRIBUTE,
+	TIHTM_WRONG_TYPE
+};
+
+
+class TiHtmAttribute : public TiHtmBase
+{
+	friend class TiHtmAttributeSet;
+
+public:
+	TiHtmAttribute() : TiHtmBase() { prev = next = NULL; }
+	TiHtmAttribute(const std::string& _name, const std::string& _value)
+	{
+		name = _name;
+		value = _value;
+		prev = next = NULL;
+	}
+	TiHtmAttribute(const char* _name, const char* _value) : name(_name), value(_value)
+	{
+		prev = next = NULL;
+	}
+	
+	const char* getName() const { return name.c_str(); }
+	const char* getValue() const { return value.c_str(); }
+	const std::string& getNameStr() const { return name; }
+	const std::string& getValueStr() const { return value; }
+	
+	/// Returns the value of this attribute, converted to an interger.
+	int intValue() const;
+	/// Returns the value of this attribute, converted to an double.
+	double doubleValue() const;
+	
+	/// examing the value string. It is an alternative to the IntValue() method with error checking.
+	/// 将value值转换为int/doulle存放到_value中
+	int queryIntValue(int* _value) const;
+	int queryDoubleValue(double* _value) const;
+	
+	void setName(const char* _name) { name = _name; }
+	void setNmae(const std::string& _name) { name = _name; }
+	void setValue(const char* _value) { value = _value; }
+	void setValue(const std::string& _value) { value = _value; }
+	
+	/// Set the value from an integer.
+	void setIntValue(int _value);
+	/// Set the value from a double.
+	void setDoubleValue(double _value);
+	
+	/// Get the next sibling attribute in the Attribute. Returns NULL at end.
+	const TiHtmAttribute* getNext() const;
+	TiHtmAttribute* getNext()
+	{
+		return const_cast<TiHtmAttribute*>((const_cast<const TiHtmAttribute *>(this))->getNext());
+	}
+	
+	/// Get the previous sibling attribute in the Attribute. Returns NULL at beginning.
+	const TiHtmAttribute* getPrevious() const;
+	TiHtmAttribute* getPrevious()
+	{
+		return const_cast<TiHtmAttribute*>((const_cast<const TiHtmAttribute*>(this))->getPrevious());
+	}
+	
+	bool operator==(const TiHtmAttribute& rhs) const { return rhs.name == name; }
+	bool operator< (const TiHtmAttribute& rhs) const { return name < rhs.name; }
+	bool operator> (const TiHtmAttribute& rhs) const { return name > rhs.name; }
+	
+	/// Attribute parseing starts: first letter of the name
+	///						returns: the next char after the value end quote.
+	/// 读取name和value值，比如version="1.0"，name="version"，value="1.0"，一次只能读取一个name和value的值
+	/// value的值不包括"1.0"的引号部分，当然，加入""中在含有""时，value就包含""了
+	virtual const char* parse(const char* p, TiHtmParsingData* data);
+	
+	/// Print this Attribute to a FILE stream.
+	virtual void print(FILE *cfile, int depth) const
+	{
+		print(cfile, depth, 0);
+	}
+	void print(FILE* cfile, int depth, std::string* str) const;
+	
+private:
+	// Not allow copy assign
+	TiHtmAttribute(const TiHtmAttribute&);
+	TiHtmAttribute& operator=(const TiHtmAttribute& base);
+	
+	std::string name;
+	std::string value;
+	TiHtmAttribute* prev;
+	TiHtmAttribute* next;
+};
+
+class TiHtmAttributeSet
+{
+	
 };
 
 class TiHtmElement : public TiHtmNode
